@@ -1,0 +1,4 @@
+setuptools
+pandas
+numpy
+pybedtools
