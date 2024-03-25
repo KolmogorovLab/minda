@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def get_base_df(decomposed_dfs_list, tolerance):
+def get_base_df(decomposed_dfs_list, tolerance, multimatch):
     dfs_1 = [dfs_list[0] for dfs_list in decomposed_dfs_list]
     dfs_2 = [dfs_list[1] for dfs_list in decomposed_dfs_list]
 
@@ -13,7 +13,7 @@ def get_base_df(decomposed_dfs_list, tolerance):
     base_1_df = dfs_1[-1]
     base_2_df = dfs_2[-1]
 
-    # find which which comparison start loci are within tolerance range of base start loci
+    # find which comparison start loci are within tolerance range of base start loci
     base_1_loci = list(zip(base_1_df['#CHROM'], base_1_df['POS']))
     start_loci = list(zip(start_dfs['#CHROM'], start_dfs['POS']))
     base_2_loci = list(zip(base_2_df['#CHROM'], base_2_df['POS']))
@@ -39,11 +39,13 @@ def get_base_df(decomposed_dfs_list, tolerance):
             start_index_lists.append([])
 
     # if start loci within tolerance range, check that end also is
+    running_list = []
     comp_minda_ids = start_dfs.Minda_ID.to_list()
     minda_id_lists = []
     for i in range(len(start_index_lists)):
         index_list = start_index_lists[i]
         base_locus = base_2_loci[i]
+
         
         minda_id_list = []
         for index in index_list:
@@ -52,13 +54,15 @@ def get_base_df(decomposed_dfs_list, tolerance):
                 #print(base_locus, end_locus)
                 distance = abs(base_locus[1] - end_locus[1])
                 if distance <= tolerance:
-                    #print(start_locus)
-                    #end_index = index
-                    #print(index)
                     minda_id = comp_minda_ids[index]
-                    #print(minda_id)
-                    #print(base_locus, comp_locus, base_index)
-                    minda_id_list.append(minda_id)
+                    
+                    if multimatch == False:
+                        caller = minda_id.rsplit('_', 1)[0]
+                        if any(id.startswith(caller) for id in minda_id_list) == False and minda_id not in running_list:   
+                            minda_id_list.append(minda_id)
+                            running_list.append(minda_id)
+                    else:
+                        minda_id_list.append(minda_id)
         minda_id_lists.append(minda_id_list)
         if len( minda_id_lists) != (i+1): # ensure each base record has a list even if no comp calls within tolerance range
              minda_id_lists.append([])
@@ -81,17 +85,15 @@ def get_support_df(base_df, caller_names, vaf, out_dir, sample_name):
             call_boolean  = any(value.startswith(caller_name) for value in minda_id_list)
             caller_column.append(call_boolean)
         base_df[f'{caller_name}'] = caller_column
-
-    if vaf != None:
-        column_names = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
-                        '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
-                        'SVTYPE_x', 'SVLEN', 'VAF_x', 'Minda_ID_x','Minda_IDs'] + caller_names
-        support_df = base_df[column_names].rename(columns={'SVTYPE_x':'SVTYPE', 'VAF_x':'VAF', 'Minda_ID_x': 'Minda_ID'}).copy()
-    else:
-        column_names = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
-                        '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
-                        'SVTYPE_x', 'SVLEN', 'Minda_ID_x', 'Minda_IDs'] + caller_names
-        support_df = base_df[column_names].rename(columns={'SVTYPE_x':'SVTYPE', 'Minda_ID_x': 'Minda_ID'}).copy()
+    
+    if vaf == None:
+        base_df['VAF_x'] = np.nan
+    
+    column_names = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
+                    '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
+                    'SVTYPE_x', 'SVLEN', 'VAF_x', 'Minda_ID_x','Minda_IDs'] + [caller_names[-1]] + caller_names[:-1]
+        
+    support_df = base_df[column_names].rename(columns={'SVTYPE_x':'SVTYPE', 'VAF_x':'VAF', 'Minda_ID_x': 'Minda_ID'}).copy()
 
     support_df.to_csv(f'{out_dir}/{sample_name}_support.tsv', sep='\t', index=False)
     

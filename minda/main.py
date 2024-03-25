@@ -125,33 +125,24 @@ def run(args):
 
     if args.command == 'ensemble' and args.conditions != None:
         conditions = eval(args.conditions)
-        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version)
+        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
         results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args)
         logger.info(f"\n{results[0]}")
     
     elif args.command == 'ensemble' and args.min_support != None:
         conditions = eval(f"[[caller_names,'>=', {args.min_support}]]")
-        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version)
+        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
         results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args)
         logger.info(f"\n{results[0]}")
 
     else:
-        base_df = get_base_df(decomposed_dfs_list, args.tolerance) 
+        base_df = get_base_df(decomposed_dfs_list, args.tolerance, args.multimatch) 
         support_df = get_truthset_support_df(base_df, caller_names, args.vaf, args.out_dir, args.sample_name)
         results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf,args.command, args)
         logger.info(f"\n{results[0]}")
-  
-# # add vaf to support_df
-# # for i in range(len(caller_names)):
-# #        caller_name = caller_names[i]
-# #        df = decomposed_dfs_list[i][1]
-# #        support_df[f'{caller_name}'] = support_df.apply(add_vaf, args=(df, caller_name),axis=1)
-# #        support_df = support_df[columns]
-# #        support_df.to_csv(f'{out_dir}/{sample_name}_ensemble_vaf.tsv', sep='\t', index=False)
 
 
 def main():
-    #parser=argparse.ArgumentParser(description="Minda - VCF evaluation tool for germline and somatic structural variant callers", add_help=False)
     parser=argparse.ArgumentParser(description="Minda - VCF evaluation tool for germline and somatic structural variant callers")
     subparser=parser.add_subparsers(dest="command")
 
@@ -163,46 +154,46 @@ def main():
     truthset = subparser.add_parser("truthset", help='benchmark VCF(s) against a base VCF')
 
     # required arguements
-    truthset.add_argument("--out_dir", help='path to out directory.', dest="out_dir", type=str, required=True)
+    truthset.add_argument("--out_dir", help='path to out directory', dest="out_dir", type=str, required=True)
     truthset.add_argument("--base", help='path of base VCF', dest="base", type=str, required=True)
     
     # mutally exclusive arguments
     truthset_input = truthset.add_mutually_exclusive_group(required=True)
-    truthset_input.add_argument('--tsv', action="store", dest="tsv", help="tsv file path", type=os.path.abspath)
+    truthset_input.add_argument('--tsv', action="store", dest="tsv", help="tsv file path")
     truthset_input.add_argument('--vcfs', action="store", dest="vcfs", nargs="+", help="vcf file path(s)")
 
     # # optional arguments 
     truthset.add_argument("--bed", help=f'path to bed file for filtering records with BedTool intersect', dest="bed", type=str)
     truthset.add_argument("--filter", help=f'filter records by FILTER column; default="{FILTER}"', dest="filter", type=str, nargs="*", default=FILTER) 
     truthset.add_argument("--min_size", help=f'filter records by SVSIZE in INFO column', dest="min_size", type=int)
-    truthset.add_argument("--tolerance", help=f'maximum allowable difference between base and caller breakpoint; default={TOLERANCE}', dest="tolerance", type=int, default=TOLERANCE)
+    truthset.add_argument("--tolerance", help=f'maximum allowable bp distance between base and caller breakpoint; default={TOLERANCE}', dest="tolerance", type=int, default=TOLERANCE)
     truthset.add_argument("--sample_name", help=f'name of sample', dest="sample_name", type=str)
-    truthset.add_argument("--vaf", help=f'filter out records below a VAF treshold', dest="vaf", type=float)
-    
+    truthset.add_argument("--vaf", help=f'filter out records below a given VAF treshold', dest="vaf", type=float)
+    truthset.add_argument("--multimatch", help=f'allow more than one record from the same caller to match a single truthset record', dest="multimatch", action='store_true')
 
     # ENSEMBLE ------------------------------------------------
     ensemble = subparser.add_parser("ensemble", help='create an ensemble call list from multiple VCF and, optionally, benchmark each VCF against')
 
     # required arguements
-    ensemble.add_argument("--out_dir", help='path to out directory.', dest="out_dir", type=str, required=True)
+    ensemble.add_argument("--out_dir", help='path to out directory', dest="out_dir", type=str, required=True)
     
     # mutally exclusive arguments
     ensemble_input = ensemble.add_mutually_exclusive_group(required=True)
-    ensemble_input.add_argument('--tsv', action="store", dest="tsv", help="tsv file path", type=os.path.abspath)
+    ensemble_input.add_argument('--tsv', action="store", dest="tsv", help="tsv file path")
     ensemble_input.add_argument('--vcfs', action="store", dest="vcfs", nargs="+", help="vcf file path(s)")
 
     ensemble_support = ensemble.add_mutually_exclusive_group(required=True)
-    ensemble_support.add_argument("--conditions", help=f'conditions for an ensemble call to be considered a true positive - if None, VCFs will not be benchmarked against ensemble calls', dest="conditions", type=str)
-    ensemble_support.add_argument("--min_support", help=f'minimumn number of calls to support a call', dest="min_support", type=int)
+    ensemble_support.add_argument("--conditions", help=f'specific conditions to support a call', dest="conditions", type=str)
+    ensemble_support.add_argument("--min_support", help=f'minimumn number of callers to support a call', dest="min_support", type=int)
 
     # optional arguments 
     ensemble.add_argument("--bed", help=f'path to bed file for filtering records with BedTool intersect', dest="bed", type=str)
     ensemble.add_argument("--filter", help=f'filter records by FILTER column; default="{FILTER}"', dest="filter", type=str, nargs="*", default=FILTER) 
     ensemble.add_argument("--min_size", help=f'filter records by SVSIZE in INFO column', dest="min_size", type=int)
-    ensemble.add_argument("--tolerance", help=f'maximum allowable difference between base and caller breakpoint; default={TOLERANCE}', dest="tolerance", type=int, default=TOLERANCE)
+    ensemble.add_argument("--tolerance", help=f'maximum allowable bp distance between base and caller breakpoint; default={TOLERANCE}', dest="tolerance", type=int, default=TOLERANCE)
     ensemble.add_argument("--sample_name", help=f'name of sample', dest="sample_name", type=str)
-    ensemble.add_argument("--vaf", help=f'filter out records below a VAF treshold', dest="vaf", type=float)
-    
+    ensemble.add_argument("--vaf", help=f'filter out records below a given VAF treshold', dest="vaf", type=float)
+    ensemble.add_argument("--multimatch", help=f'allow more than one record from the same caller to match a single ensemble record', dest="multimatch", action='store_true')
 
     # ------------------------------------------------
     args, remaining_args = parser.parse_known_args()

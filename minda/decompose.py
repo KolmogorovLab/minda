@@ -272,10 +272,6 @@ def _check_df_order(df_1, df_2):
     
         # if sort is out of order, what the chrom & pos values of the start & end dfs
         if order_df.equals(sorted_order_df) == False: 
-            # df_1.loc[i,'#CHROM'] = sorted_order_df.iloc[0]['#CHROM']
-            # df_1.loc[i, 'POS'] = sorted_order_df.iloc[0]['POS']
-            # df_2.loc[i,'#CHROM'] = sorted_order_df.iloc[1]['#CHROM']
-            # df_2.loc[i, 'POS'] = sorted_order_df.iloc[1]['POS']
             df_1.at[i,'#CHROM'] = sorted_order_df.iloc[0]['#CHROM']
             df_1.at[i, 'POS'] = sorted_order_df.iloc[0]['POS']
             df_2.at[i,'#CHROM'] = sorted_order_df.iloc[1]['#CHROM']
@@ -355,8 +351,6 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
 
     info_df_1, info_df_2 = _get_paired_info_dfs(info_df)
 
-    #decomposed_df_1 = pd.concat([info_df_1, alt_df_1]).sort_index() 
-    #decomposed_df_2 = pd.concat([info_df_2, alt_df_2]).sort_index()
     non_empty_1 = [df for df in [info_df_1, alt_df_1] if not df.empty]
     decomposed_df_1 = pd.concat(non_empty_1).sort_index()
     non_empty_2 = [df for df in [info_df_2, alt_df_2] if not df.empty]

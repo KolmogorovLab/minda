@@ -1,45 +1,37 @@
 import pandas as pd 
+from collections import Counter
 
 def _get_tp_fn_fp(support_df, decomposed_dfs, caller_name, vaf, command):
 
     paired_df = decomposed_dfs[0].merge(decomposed_dfs[1], on='Minda_ID')
-    #base_df = support_df[support_df.iloc[:,-1] == True]
+
     if command == "ensemble":
         base_df = support_df[support_df['ensemble'] == True]
     else:
-        base_df = support_df[support_df.iloc[:,-1] == True]
+        base_df = support_df[support_df.iloc[:,13] == True]
+            
     tp_ids = [id for ids in base_df["Minda_IDs"].to_list() for id in ids]
-
+    
     # create tp, fn, fp dfs
     if command == "ensemble":
-        if vaf != None:
-            fn_columns = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x', \
+        fn_columns = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x', \
                           '#CHROM_y', 'POS_y', 'locus_group_y', 'ID_list_y', \
                           'SVTYPE', 'SVLEN', 'VAF', 'Minda_IDs']
-        else:
-            fn_columns = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x', \
-                          '#CHROM_y', 'POS_y', 'locus_group_y', 'ID_list_y', \
-                          'SVTYPE', 'SVLEN', 'Minda_IDs']
+
     if command == "truthset":
-        if vaf != None:
-            fn_columns = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
+        fn_columns = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
                             '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
-                            'SVTYPE', 'SVLEN', 'VAF', 'Minda_IDs']
-        
-        else:
-            fn_columns = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
-                            '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
-                            'SVTYPE', 'SVLEN', 'Minda_IDs'] 
+                            'SVTYPE', 'SVLEN', 'VAF', 'Minda_IDs'] 
         
     fn_df = base_df[base_df[f'{caller_name}'] == False][fn_columns]
     tp_df = paired_df[paired_df['Minda_ID'].isin(tp_ids)]
     fp_df = paired_df[~paired_df['Minda_ID'].isin(tp_ids)]
     
+    
     return tp_df, fn_df, fp_df, base_df, paired_df
     
-def _get_stats_df(tp_df, fn_df, fp_df, paired_df, base_df, caller_name, max_len, out_dir, sample_name):
-
-    # overall calls dfs
+def _get_stats_df(tp_df, fn_df, fp_df, paired_df, base_df, caller_name, max_len, out_dir, sample_name, command):
+    
     tp = tp_df.shape[0]
     fn = fn_df.shape[0]
     fp = fp_df.shape[0]
@@ -88,7 +80,7 @@ def get_results(decomposed_dfs_list, base_dfs, caller_names, out_dir, sample_nam
         decomposed_dfs = decomposed_dfs_list[i]
         caller_name = caller_names[i]
         tp_df, fn_df, fp_df, base_df, paired_df = _get_tp_fn_fp(base_dfs, decomposed_dfs, caller_name, vaf, command)
-        stats_dfs = _get_stats_df(tp_df, fn_df, fp_df, paired_df, base_df, caller_name, max_len, out_dir, sample_name)            
+        stats_dfs = _get_stats_df(tp_df, fn_df, fp_df, paired_df, base_df, caller_name, max_len, out_dir, sample_name, command)            
         stats_dfs_list.append(stats_dfs)
 
     overall_results_df = pd.concat([df[0] for df in stats_dfs_list])

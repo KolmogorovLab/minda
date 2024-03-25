@@ -61,7 +61,7 @@ def _add_columns(ensemble_df, vaf):
     return ensemble_df
 
 
-def _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir, sample_name, args):
+def _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir, sample_name, args, multimatch):
     
     dfs_1 = [dfs_list[0] for dfs_list in decomposed_dfs_list]
     dfs_2 = [dfs_list[1] for dfs_list in decomposed_dfs_list]
@@ -115,22 +115,25 @@ def _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir,
     for i in range(len(diffs)):
         diff = diffs[i]
         caller_name = caller_names[i]
-        if diff >= tolerance:
+        
+        #create new end locus (sublocus 1)
+        if diff >= tolerance: 
             locus_callers.clear()
             locus_callers.append(caller_name)
             locus = str(count) + "_1"
             loci.append(locus)
             count += 1
             
-    
-        elif diff < tolerance and caller_name in locus_callers:
-            locus_callers.append(caller_name)
-            sub_group = locus_callers.count(caller_name)
-            locus = str(count-1) + "_" + str(sub_group)
-            loci.append(locus)
+        # add new sublocus (sublocus determined by how many calls the caller makes at a given locus)
+        elif multimatch == False and diff < tolerance and caller_name in locus_callers:
+            #elif diff < tolerance and caller_name in locus_callers: 
+                locus_callers.append(caller_name)
+                sub_group = locus_callers.count(caller_name)
+                locus = str(count-1) + "_" + str(sub_group)
+                loci.append(locus)
             
-            
-        else:
+        # add to existing sublocus 1   
+        else: 
             locus = str(count - 1) + "_1" 
             loci.append(locus)
             locus_callers.append(caller_name)
@@ -228,13 +231,11 @@ def _get_ensemble_vcf(support_df, out_dir, sample_name, args, vaf, version):
         vcf_df.to_csv(file, sep="\t", index=False)
 
 
-def get_support_df(decomposed_dfs_list, caller_names, tolerance, conditions, vaf, command, out_dir, sample_name, args, version):
-    ensemble_df = _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir, sample_name, args)
+def get_support_df(decomposed_dfs_list, caller_names, tolerance, conditions, vaf, command, out_dir, sample_name, args, version, multimatch):
+    ensemble_df = _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir, sample_name, args, multimatch)
     
     minda_id_x_lists = ensemble_df.Minda_ID_list_x.to_list()
     minda_id_y_lists = ensemble_df.Minda_ID_list_y.to_list()
-    # if vaf != None:
-    #     vafs = ensemble_df.VAFs.to_list()
     
     # check that both start & end have same IDs
     for caller_name in caller_names:
@@ -247,14 +248,6 @@ def get_support_df(decomposed_dfs_list, caller_names, tolerance, conditions, vaf
             caller_column.append(call_boolean)
         ensemble_df[f'{caller_name}'] = caller_column
 
-    # if vaf != None:
-    #     column_names = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x',  \
-    #                     '#CHROM_y', 'POS_y', 'locus_group_y', 'ID_list_y', \
-    #                     'SVTYPE', 'SVLEN', 'VAF', 'Minda_ID_list_y'] + caller_names
-    # else:
-    #     column_names = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x',  \
-    #                     '#CHROM_y', 'POS_y', 'locus_group_y', 'ID_list_y', \
-    #                     'SVTYPE', 'SVLEN', 'Minda_ID_list_y'] + caller_names
     column_names = ['#CHROM_x', 'POS_x', 'locus_group_x', 'ID_list_x',  \
                     '#CHROM_y', 'POS_y', 'locus_group_y', 'ID_list_y', \
                     'SVTYPE', 'SVLEN', 'VAF', 'Minda_ID_list_y'] + caller_names
