@@ -280,14 +280,16 @@ def _check_df_order(df_1, df_2):
     return df_1, df_2
 
 
-def _write_removed_records(id_set_difference, caller_name, sample_name, out_dir):
-    id_difference_list = list(id_set_difference)
+def _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir):
+    id_difference_list = sorted(list(id_set_difference))
     path = f'{out_dir}/{sample_name}_removed_records.txt'
     file_check = os.path.isfile(path)
     with open(path,'a') as file:
         if file_check == False:
             file.write('REMOVED RECORDS\n')  
-        file.write(f'\n{caller_name}\n')
+        if written_count == 0:
+            step =  "***** " + caller_name + " *****" + "\n" + step
+        file.write(f'\n{step}\n')
         file.write('\n'.join(id_difference_list))
         file.write('\n')
 
@@ -299,13 +301,21 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
     logger.info(f"DECOMPOSING {caller_name} RECORDS...")
     logger.info(f"Original number of records: {len(df)}")
     
+    written_count = 0
+    original_id_set = set(df.ID.to_list())
     
     # filter_df
     if filter != None:
         df = df[df['FILTER'].isin(filter)]
     logger.info(f"Number of after filtering by FILTER column: {len(df)}")
 
-    pass_id_set = set(df.ID.to_list())
+    # write removed ids to txt
+    filter_id_set = set(df.ID.to_list())
+    id_set_difference = original_id_set.difference(filter_id_set)
+    if len(list(id_set_difference)) > 0:
+        step = "FILTER"
+        _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir)
+        written_count +=1
     
     # sort df
     df = _get_sorted_df(df)
@@ -356,8 +366,25 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
     non_empty_2 = [df for df in [info_df_2, alt_df_2] if not df.empty]
     decomposed_df_2 = pd.concat(non_empty_2).sort_index()
 
+    # write removed ids to txt
+    singleton_id_set = set(decomposed_df_1.ID.to_list() + decomposed_df_2.ID.to_list())
+    id_set_difference = filter_id_set.difference(singleton_id_set)
+    if len(id_set_difference) > 0:
+        step = "SINGLETON"
+        _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir)
+        written_count += 1
+
     # check that start and end record are in correct df
     decomposed_df_1, decomposed_df_2 = _check_df_order(decomposed_df_1, decomposed_df_2)
+
+    # write removed ids to txt
+    order_id_set = set(decomposed_df_1.ID.to_list() + decomposed_df_2.ID.to_list())
+    id_set_difference = singleton_id_set.difference(order_id_set)
+    step = "END/START ORDER"
+    if len(id_set_difference) > 0:
+            step = "END/START ORDER"
+            _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir)
+            written_count += 1
 
     decomposed_df_1['Minda_ID'] = f'{caller_name}_' + (decomposed_df_1.index + 1).astype(str)
     decomposed_df_2['Minda_ID'] = f'{caller_name}_' + (decomposed_df_2.index + 1).astype(str)
@@ -371,10 +398,14 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
         decomposed_df_1 = decomposed_df_1[(decomposed_df_1['SVLEN'] >= min_size) | (decomposed_df_1['SVLEN'] == -1)]
         decomposed_df_2 = decomposed_df_2[decomposed_df_2.index.isin(decomposed_df_1.index)]
         logger.info(f"Number of records after size filtering: {len(decomposed_df_1)} {len(decomposed_df_2)}")
-    if prefixed == True:
-        prefix = caller_name.split('_', 1)[0]
-        decomposed_df_1.ID = prefix + "_" + decomposed_df_1['ID'].astype(str)
-        decomposed_df_2.ID = prefix + "_" + decomposed_df_2['ID'].astype(str)
+
+    # write removed ids to txt
+    svlen_id_set = set(decomposed_df_1.ID.to_list() + decomposed_df_2.ID.to_list())
+    id_set_difference = order_id_set.difference(svlen_id_set)
+    if len(id_set_difference) > 0:
+        step = "SVLEN"
+        _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir)
+        written_count += 1
 
     # filter low VAFs such that if either the start or end VAF is too low, records from both dfs are removed
     if vaf != None:
@@ -384,15 +415,21 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
         decomposed_df_1 = decomposed_df_1[decomposed_df_1['Minda_ID'].isin(minda_ids_list)]
         decomposed_df_2 = decomposed_df_2[decomposed_df_2['Minda_ID'].isin(minda_ids_list)]
         logger.info(f"Number of records after VAF filtering: {len(decomposed_df_1)} {len(decomposed_df_2)}")
+
+    # write removed ids to txt
+    vaf_id_set = set(decomposed_df_1.ID.to_list() + decomposed_df_2.ID.to_list())
+    id_set_difference = svlen_id_set.difference(vaf_id_set)
+    step = "VAF"
+    if len(id_set_difference) > 0:
+        step = "VAF"
+        _write_removed_records(id_set_difference, caller_name, step, written_count, sample_name, out_dir)
+        written_count += 1
           
     logger.info(f"Total number of decomposed records: {decomposed_df_1.shape[0]} {decomposed_df_2.shape[0]}")
-    
-    # # check that start and end record are in correct df
-    # decomposed_df_1, decomposed_df_2 = _check_df_order(decomposed_df_1, decomposed_df_2)
-    
-    # check all records are that are in FILTER df also in decompoesed dfs
-    decomposed_id_set = set(decomposed_df_1.ID.to_list() + decomposed_df_2.ID.to_list())
-    id_set_difference = pass_id_set.difference(decomposed_id_set)
-    _write_removed_records(id_set_difference, caller_name, sample_name, out_dir)
+
+    if prefixed == True:
+        prefix = caller_name.split('_', 1)[0]
+        decomposed_df_1.ID = prefix + "_" + decomposed_df_1['ID'].astype(str)
+        decomposed_df_2.ID = prefix + "_" + decomposed_df_2['ID'].astype(str)
 
     return decomposed_df_1, decomposed_df_2, max_svlen
