@@ -1,3 +1,4 @@
+import sys
 import pandas as pd 
 from collections import Counter
 
@@ -42,7 +43,11 @@ def _get_stats_df(tp_df, fn_df, fp_df, paired_df, base_df, caller_name, max_len,
     fp_df.to_csv(f'{out_dir}/{sample_name}_{caller_name}_fp.tsv', sep='\t', index=False)
 
     # caluluate stats
+    if tp+fp == 0:
+        sys.exit(f"{caller_name} has no TP or FP records. Please double check input files.")
     precision = tp/(tp+fp) 
+    if tp+fn == 0:
+        sys.exit(f"{caller_name} has no TP or FN records. Please double check input files.")
     recall = tp/(tp+fn)
     f1 = (2*precision*recall)/(precision+recall)
 
@@ -92,7 +97,8 @@ def get_results(decomposed_dfs_list, base_dfs, caller_names, out_dir, sample_nam
     fp_len_results_df = pd.concat([df[6] for df in stats_dfs_list]).fillna(0).astype(int)
 
     results_dfs = [overall_results_df, tp_type_results_df, fn_type_results_df, fp_type_results_df, \
-                    tp_len_results_df, fn_len_results_df, fp_len_results_df]
+                    tp_len_results_df, fn_len_results_df, fp_len_results_df] 
+    
     headings = ['OVERALL\n\n', '\n\nSV TYPE RESULTS\nTrue Positives\n\n', 'False Negatives\n', 'False Positives\n',\
                 '\n\nSV LENGTH RESULTS\nTrue Positives\n', 'False Negatives\n', 'False Positives\n']
     user_input = ", ".join([f"{key}={value}" for key, value in vars(args).items() if value is not None and key!= "func"])
@@ -103,7 +109,10 @@ def get_results(decomposed_dfs_list, base_dfs, caller_names, out_dir, sample_nam
             heading = headings[i]
             df = results_dfs[i]
             file.write(headings[i])
-            file.write(df.to_string() + '\n\n')
+            if df.isna().all().all():
+                file.write("None" + '\n\n')
+            else:
+                file.write(df.to_string() + '\n\n')
         file.write(f'##minda_args: {user_input}\n')
 
     return overall_results_df, tp_type_results_df, fn_type_results_df, fp_type_results_df, tp_len_results_df, fn_len_results_df, fp_len_results_df, paired_df

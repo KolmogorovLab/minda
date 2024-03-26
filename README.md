@@ -1,10 +1,10 @@
 # Minda
-###### Note: This repository is under going updates.
+###### Note: This tool is under active devlopment.
 
-Minda is tool for evaluating structural variant (SV) callers that:
-* standardizes VCF records for compatibility with both germline and somatic SV callers
-* benchmarks against a single VCF input file
-* benchmarks against an ensemble call set created from multiple VCF input files
+Minda is a tool for evaluating structural variant (SV) callers that
+* standardizes VCF records for compatibility with both germline and somatic SV callers,
+* benchmarks against a single VCF input file, or
+* benchmarks against an ensemble call set created from multiple VCF input files.
 
 ## Installation
 
@@ -12,7 +12,7 @@ Clone the repository and install the dependencies via conda:
 
 ```
 git clone https://github.com:KolmogorovLab/minda
-cd Severus
+cd minda
 conda env create --name minda --file environment.yml
 conda activate minda
 ./minda.py
@@ -67,10 +67,10 @@ Creating an ensemble from several vcfs and benchmarking against ensemble calls:
 --multimatch     allow more than one record from the same caller VCF to match a single truthset/ensemble record
 ```
 ##### VCF Input
-Minda standardizes input VCFs by decomposing every SV into start and end records. Records are handled in one of two ways:
+Minda standardizes input VCFs by decomposing every SV into start and end records. Records are handled in one of two following ways:
 <ol>
     <li>For records having a CHROM:POS pattern in the `ALT` field, the `#CHROM` and `POS` fields are considered the start. Minda then searches for the end record matching the `ALT` field among other records. Alternatively, the `MATEID` from the `INFO` field may be used to find the end record. If no end record is found, the details from the `ALT` field are used to create one.  </li>
-    <li>All other records Minda considers start records. The corresponding end records use the start `#CHROM` and `POS` is calculated by adding the start `POS` with absolute value of `SVLEN` or is extracted from the `END` value in the `INFO` field. </li> 
+    <li>All other records Minda considers start records. The corresponding end records use the start `#CHROM` and `POS` is calculated by adding the start `POS` with absolute value of `SVLEN` or is extracted from the `END` integer in the `INFO` field. </li> 
 </ol>
 Minda has been tested on VCFs produced by
 
@@ -92,7 +92,7 @@ The `--tsv` file has one required column and up three columns. The columns shoul
     <li>caller name</li>
     <li>prefix</li>  
 </ol>
-If a caller name is not provided, the name listed in the source field of the VCF will be used. If more than one VCF with the same caller name is provided, prefixes disambiguate ID and column names in Minda output files. In the case where prefixes are not provided by the user, Minda automatically assigns a letter prefix in ascending alphabetically order (i.e. A, B, C, etc).
+If a caller name is not provided, the name listed in the source field of the VCF will be used. If more than one VCF with the same caller name is provided, prefixes disambiguate ID and column names in Minda output files. In the case where prefixes are not provided by the user, Minda automatically assigns a letter prefix in ascending alphabetically order (i.e. A, B, C, etc.).
 
 An example of TSV contents:
 ```
@@ -109,11 +109,11 @@ The `--conditions` parameter enables specific user-defined conditions to be met 
     <li>a number</li>  
 </ol>
 
-Using the the TSV contents above, for example, to require that an ensemble call be one for which both ONT and PB agree, specify for `--tsv` input:
+For example, from the TSV contents above, to require that an ensemble call be one for which both ONT and PB agree, when using `--tsv` input, specify:
 ```
 "[['ONT_Severus', 'PB_Severus'], '>=', 2]"
 ```
-OR for `--vcfs` or `--tsv` input:
+OR when using `--vcfs` or `--tsv` input:
 ```
 "[[caller_names[:2], '>=', 2]"
 ```
@@ -128,7 +128,7 @@ OR for `--vcfs` or `--tsv` input:
 "[[caller_names[:2], '>=', 1], '&', [caller_names[2:], '==', 1]]"
 ```
 ##### VAF Filtering
-###### Note: This requires preprocessing of VCFs. Use script here.
+###### Note: This requires preprocessing of VCF file.
 To run Minda with the `--vaf` parameter, ensure the VCF files have a `VAF` value in the INFO field.  
 
 ## Output Files

@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import pandas as pd
 import numpy as np
@@ -307,7 +308,7 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
     # filter_df
     if filter != None:
         df = df[df['FILTER'].isin(filter)]
-    logger.info(f"Number of after filtering by FILTER column: {len(df)}")
+    logger.info(f"Number of records after filtering by FILTER column: {len(df)}")
 
     # write removed ids to txt
     filter_id_set = set(df.ID.to_list())
@@ -334,6 +335,8 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
     # add VAF column
     if vaf != None:
         df['VAF'] = df.INFO.str.extract(r';VAF=([\d.]+)')[0].astype('float').to_list()
+        if df.VAF.isnull().all() == True:
+            sys.exit(f"No VAF values found in {caller_name} VCF. Run Minda without --vaf parameter or add VAF to INFO. ")
     
     # get indices of mate rows
     df = _get_alt_mate_index(df)
