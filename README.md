@@ -68,10 +68,8 @@ Creating an ensemble from several vcfs and benchmarking against ensemble calls:
 ```
 ##### VCF Input
 Minda standardizes input VCFs by decomposing every SV into start and end records. Records are handled in one of two following ways:
-<ol>
-    <li>For records having a CHROM:POS pattern in the `ALT` field, the `#CHROM` and `POS` fields are considered the start. Minda then searches for the end record matching the `ALT` field among other records. Alternatively, the `MATEID` from the `INFO` field may be used to find the end record. If no end record is found, the details from the `ALT` field are used to create one.  </li>
-    <li>All other records Minda considers start records. The corresponding end records use the start `#CHROM` and `POS` is calculated by adding the start `POS` with absolute value of `SVLEN` or is extracted from the `END` integer in the `INFO` field. </li> 
-</ol>
+1. For records having a CHROM:POS pattern in the `ALT` field, the `#CHROM` and `POS` fields are considered the start. Minda then searches for the end record matching the `ALT` field among other records. Alternatively, the `MATEID` from the `INFO` field may be used to find the end record. If no end record is found, the details from the `ALT` field are used to create one.
+2. All other records Minda considers start records. The corresponding end records use the start `#CHROM` and `POS` is calculated by adding the start `POS` with absolute value of `SVLEN` or is extracted from the `END` integer in the `INFO` field. 
 Minda has been tested on VCFs produced by
 
 * Severus
@@ -83,6 +81,7 @@ Minda has been tested on VCFs produced by
 * GRIPSS
 * manta
 * SvABA.
+
 If you encounter issues with these or other VCF files, please [let us know](https://github.com/KolmogorovLab/minda/issues). 
 
 ##### TSV Input
@@ -128,7 +127,7 @@ OR for `--vcfs` or `--tsv` input:
 "[[caller_names[:2], '>=', 1], '&', [caller_names[2:], '==', 1]]"
 ```
 ##### VAF Filtering
-###### Note: This requires preprocessing of VCF file.
+###### Note: This requires preprocessing of VCF file. See [scripts](scripts).
 To run Minda with the `--vaf` parameter, ensure the VCF files have a `VAF` value in the INFO field.  
 
 ## Output Files
@@ -167,4 +166,3 @@ Key contributors:
 ### Contact
 If you experience any problems or would like to make a suggestion, please submit an [issue](https://github.com/KolmogorovLab/minda/issues).
 To contact the developer directly, email asher.bryant@nih.gov.
-
