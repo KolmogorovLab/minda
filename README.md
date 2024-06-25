@@ -29,7 +29,7 @@ Benchmarking several vcfs against a truth set vcf:
 Creating an ensemble from several vcfs and benchmarking against ensemble calls:
 
 ```
-./minda.py truthset --vcfs caller_1.vcf caller_2.vcf caller_3.vcf --out_dir minda_out
+./minda.py ensemble --vcfs caller_1.vcf caller_2.vcf caller_3.vcf --out_dir minda_out
 ```
 
 ## Inputs and Parameters

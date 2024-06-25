@@ -53,6 +53,7 @@ def run(args):
     _enable_logging(log_file, debug=False, overwrite=True)
 
     version =  _version()
+    logger.info("cmd: %s", " ".join(sys.argv))
     logger.info("MindaV" + version)
 
     if args.command == 'truthset':
@@ -126,19 +127,19 @@ def run(args):
     if args.command == 'ensemble' and args.conditions != None:
         conditions = eval(args.conditions)
         support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
-        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args)
+        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args, version)
         logger.info(f"\n{results[0]}")
     
     elif args.command == 'ensemble' and args.min_support != None:
         conditions = eval(f"[[caller_names,'>=', {args.min_support}]]")
         support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
-        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args)
+        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args, version)
         logger.info(f"\n{results[0]}")
 
     else:
         base_df = get_base_df(decomposed_dfs_list, args.tolerance, args.multimatch) 
         support_df = get_truthset_support_df(base_df, caller_names, args.vaf, args.out_dir, args.sample_name)
-        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf,args.command, args)
+        results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf,args.command, args, version)
         logger.info(f"\n{results[0]}")
 
 

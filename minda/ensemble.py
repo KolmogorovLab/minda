@@ -1,3 +1,4 @@
+import sys
 from collections import Counter
 from datetime import datetime
 import pandas as pd 
@@ -226,8 +227,8 @@ def _get_ensemble_vcf(support_df, out_dir, sample_name, args, vaf, version):
         file.write('##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">\n##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Length of the structural variant">\n##INFO=<ID=SUPP_VEC,Number=.,Type=String,Description="IDs of support records">\n')
         if vaf != None:
             file.write('##INFO=<ID=VAF,Number=1,Type=Float,Description="Variant allele frequency">\n')
-        user_input = ", ".join([f"{key}={value}" for key, value in vars(args).items() if value is not None and key!= "func"])
-        file.write(f'##minda_args: {user_input}\n')
+        command_str = " ".join(sys.argv)
+        file.write(f"cmd: {command_str}\n")
         vcf_df.to_csv(file, sep="\t", index=False)
 
 

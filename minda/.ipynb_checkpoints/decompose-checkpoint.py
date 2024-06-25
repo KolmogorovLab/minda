@@ -3,48 +3,59 @@ import sys
 import logging
 import pandas as pd
 import numpy as np
+import gzip
+from collections import Counter
 from pybedtools import BedTool
 
 logger = logging.getLogger()
+
+
+def _is_vcf_gz(vcf):
+    with gzip.open(vcf, 'r') as file:
+        try:
+            file.read(1)
+            return True
+        except OSError:
+            return False
+            
 
 def get_caller_name(vcf):
     """
     Extracts the name of the caller from vcf.
 
     """
-    found_source = False
-    with open(vcf, 'r') as file:
-        for line in file:
-            if line.startswith("##source"):
-                source_line = line.strip()
-                line_length = len(source_line)
-                start = source_line.find("=") + 1
-                if line_length > 50:
-                    stop = source_line.find(" ")
-                    if stop == -1:
-                        stop = 51
-                else:
-                    stop = line_length
-    
-                caller_name = source_line[start:stop]
-                found_source = True
-
-    if not found_source:
-        caller_name = "Unknown source"
+    is_vcf_gz = _is_vcf_gz(vcf)
+    if is_vcf_gz == False:
+        with open(vcf, 'r') as file:
+            caller_name = _caller_name(file)
+    else:
+        with gzip.open(vcf, 'rt') as file:
+            caller_name = _caller_name(file)
     
     return caller_name
 
-def _get_column_names(vcf):
-    """
-    Extracts the column names from vcf
 
-    """
-    with open(vcf, 'r') as file:
-        for line in file:
-            if line.startswith("#CHROM"):
-                column_names = line.strip().split('\t')
-                return column_names
-    raise ValueError("No line found starting with #CHROM.")
+def _caller_name(file):
+    found_source = False
+    for line in file:
+        if line.startswith("##source"):
+            source_line = line.strip()
+            line_length = len(source_line)
+            start = source_line.find("=") + 1
+            if line_length > 50:
+                stop = source_line.find(" ")
+                if stop == -1:
+                    stop = 51
+            else:
+                stop = line_length
+
+            caller_name = source_line[start:stop]
+            found_source = True
+
+        if not found_source:
+            caller_name = "Unknown source"
+    return caller_name
+
 
 
 def get_df(vcf):
@@ -52,10 +63,13 @@ def get_df(vcf):
     Create a df from vcf.
     
     """
-    columns = _get_column_names(vcf)
-    df = pd.read_csv(vcf, comment='#', sep='\t', names=columns, dtype={'#CHROM': 'str', 'POS':'Int64'})
-    usecols = ['#CHROM', 'POS', 'ID', 'ALT', 'FILTER', 'INFO']
-    df = df[usecols]
+    is_vcf_gz = _is_vcf_gz(vcf)
+    if is_vcf_gz == False:
+        df = pd.read_csv(vcf, comment='#', sep='\t', usecols=[0,1,2,4,6,7], header=None, dtype={'#CHROM': 'str', 'POS':'Int64'})
+    else:
+        df = pd.read_csv(vcf, comment='#', sep='\t', usecols=[0,1,2,4,6,7], header=None, compression='gzip', dtype={'#CHROM': 'str', 'POS':'Int64'})
+    df.columns = ['#CHROM', 'POS', 'ID', 'ALT', 'FILTER', 'INFO']
+    
     return df
 
 
@@ -65,10 +79,10 @@ def get_intersected_df(vcf, bed):
 
     """
     bed_to_bt = BedTool(bed)
-    columns = _get_column_names(vcf)
     vcf_to_bt = BedTool(vcf)
     intersect_obj = vcf_to_bt.intersect(bed_to_bt, u=True)
-    df = BedTool.to_dataframe(intersect_obj, header=None, names=columns, dtype={'#CHROM': 'str', 'POS':'int'})
+    df = BedTool.to_dataframe(intersect_obj, header=None, usecols=[0,1,2,4,6,7], dtype={'#CHROM': 'str', 'POS':'int'})
+    df.columns = ['#CHROM', 'POS', 'ID', 'ALT', 'FILTER', 'INFO']
     return df
 
 
@@ -333,7 +347,13 @@ def get_decomposed_dfs(caller_name, df, filter, min_size, prefixed, vaf, sample_
     df.loc[~df['INFO'].str.contains('SVLEN', na=False), 'INFO'] = df['INFO'].str.replace('SVINSLEN', 'SVLEN')
     
     # add VAF column
-    if vaf != None:
+    # if vaf != None:
+    #     df['VAF'] = df.INFO.str.extract(r';VAF=([\d.]+)')[0].astype('float').to_list()
+    #     if df.VAF.isnull().all() == True:
+    #         sys.exit(f"No VAF values found in {caller_name} VCF. Run Minda without --vaf parameter or add VAF to INFO. ")
+    if vaf == None:
+        df['VAF'] = "*"
+    else:
         df['VAF'] = df.INFO.str.extract(r';VAF=([\d.]+)')[0].astype('float').to_list()
         if df.VAF.isnull().all() == True:
             sys.exit(f"No VAF values found in {caller_name} VCF. Run Minda without --vaf parameter or add VAF to INFO. ")

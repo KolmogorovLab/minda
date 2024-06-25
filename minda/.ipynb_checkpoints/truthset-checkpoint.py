@@ -86,8 +86,8 @@ def get_support_df(base_df, caller_names, vaf, out_dir, sample_name):
             caller_column.append(call_boolean)
         base_df[f'{caller_name}'] = caller_column
     
-    if vaf == None:
-        base_df['VAF_x'] = np.nan
+    # if vaf == None:
+    #     base_df['VAF_x'] = np.nan
     
     column_names = ['#CHROM_x', 'POS_x', 'ID_x', 'INFO_x', \
                     '#CHROM_y', 'POS_y', 'ID_y', 'INFO_y', \
