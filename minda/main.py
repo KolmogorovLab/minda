@@ -126,13 +126,13 @@ def run(args):
 
     if args.command == 'ensemble' and args.conditions != None:
         conditions = eval(args.conditions)
-        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
+        support_df = get_ensemble_support_df(vcf_list, decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
         results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args, version)
         logger.info(f"\n{results[0]}")
     
     elif args.command == 'ensemble' and args.min_support != None:
         conditions = eval(f"[[caller_names,'>=', {args.min_support}]]")
-        support_df = get_ensemble_support_df(decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
+        support_df = get_ensemble_support_df(vcf_list, decomposed_dfs_list, caller_names, args.tolerance, conditions, args.vaf, args.command, args.out_dir, args.sample_name, args, version, args.multimatch)
         results = get_results(decomposed_dfs_list, support_df, caller_names, args.out_dir, args.sample_name, max_len, args.tolerance, args.vaf, args.command, args, version)
         logger.info(f"\n{results[0]}")
 

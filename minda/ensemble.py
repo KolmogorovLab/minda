@@ -3,6 +3,7 @@ from collections import Counter
 from datetime import datetime
 import pandas as pd 
 import numpy as np
+import re
 
 
 def _add_columns(ensemble_df, vaf):
@@ -200,8 +201,30 @@ def _replace_value(row):
         return f"N]{row['#CHROM_y']}:{row['POS_y']}]"
     else:
         return row['ALT']
+    
+def _get_contigs(vcf_list):
+    contig_dict = {}
+    for vcf in vcf_list:
+        with open(vcf, 'r') as file:
+            for line in file:
+                if not line.startswith("##"):
+                    break
+                if line.startswith("##contig"):
+                    pattern = r'ID=([^,>]+),length=([^,>]+)'
+                    id_length_tuple = re.findall(pattern, line)[0]
+                    chr_id = id_length_tuple[0]
+                    length = int(id_length_tuple[1])
+                    if chr_id not in contig_dict:
+                        contig_dict[chr_id] = length
+                    else:
+                        value = contig_dict[chr_id]
+                        max_length = max(value, length)
+                        if value != max_length:
+                            print(f'Contig ID {chr_id} has lengths {value} and {max_length}; {max_length} will be used in ensemble.vcf header.')
+                        contig_dict[chr_id] = max_length
+    return contig_dict
 
-def _get_ensemble_vcf(support_df, out_dir, sample_name, args, vaf, version):
+def _get_ensemble_vcf(vcf_list, support_df, out_dir, sample_name, args, vaf, version):
     vcf_df = support_df[support_df['ensemble'] == True].reset_index(drop=True).copy()
     vcf_df['ID'] = f'Minda_' + (vcf_df.index + 1).astype(str)
     vcf_df['REF'] = "N" 
@@ -222,17 +245,20 @@ def _get_ensemble_vcf(support_df, out_dir, sample_name, args, vaf, version):
     date = datetime.today().strftime('%Y-%m-%d')
     with open(f'{out_dir}/{sample_name}_minda_ensemble.vcf', 'w') as file:
         file.write(f'##fileformat=VCFv4.2\n##fileDate={date}\n##source=MindaV{version}\n')
+        contig_dict = _get_contigs(vcf_list)
+        for key, value in contig_dict.items():
+            file.write(f'##contig=<ID={key},length={value}>\n')
         file.write('##ALT=<ID=DEL,Description="Deletion">\n##ALT=<ID=INS,Description="Insertion">\n##ALT=<ID=DUP,Description="Duplication">\n##ALT=<ID=INV,Description="Inversion">\n')
         file.write('##FILTER=<ID=PASS,Description="Default">\n')
         file.write('##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">\n##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Length of the structural variant">\n##INFO=<ID=SUPP_VEC,Number=.,Type=String,Description="IDs of support records">\n')
         if vaf != None:
             file.write('##INFO=<ID=VAF,Number=1,Type=Float,Description="Variant allele frequency">\n')
         command_str = " ".join(sys.argv)
-        file.write(f"cmd: {command_str}\n")
+        file.write(f"##cmd: {command_str}\n")
         vcf_df.to_csv(file, sep="\t", index=False)
 
 
-def get_support_df(decomposed_dfs_list, caller_names, tolerance, conditions, vaf, command, out_dir, sample_name, args, version, multimatch):
+def get_support_df(vcf_list, decomposed_dfs_list, caller_names, tolerance, conditions, vaf, command, out_dir, sample_name, args, version, multimatch):
     ensemble_df = _get_ensemble_df(decomposed_dfs_list, caller_names, tolerance, vaf, out_dir, sample_name, args, multimatch)
     
     minda_id_x_lists = ensemble_df.Minda_ID_list_x.to_list()
@@ -258,7 +284,7 @@ def get_support_df(decomposed_dfs_list, caller_names, tolerance, conditions, vaf
     support_df = _get_ensemble_call_column(support_df, conditions)
 
     # create ensemble vcf
-    _get_ensemble_vcf(support_df, out_dir, sample_name, args, vaf, version)
+    _get_ensemble_vcf(vcf_list, support_df, out_dir, sample_name, args, vaf, version)
 
     # create support csv
     support_ex_df = support_df
