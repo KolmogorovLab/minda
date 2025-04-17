@@ -91,6 +91,8 @@ def _get_sorted_df(df):
     Sorts dataframe by #CHROM and POS
     
     """
+    # handles instances where chromosomes are only integers
+    df["#CHROM"] = df["#CHROM"].astype(str)
     chrom_value = df.iloc[0,0]
     if chrom_value.startswith("chr"):
         chrom_set = set(df["#CHROM"].str.slice(start=3).to_list())
