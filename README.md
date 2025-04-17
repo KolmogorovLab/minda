@@ -149,7 +149,7 @@ Severus is distributed under a BSD license. See the [LICENSE](LICENSE) for detai
 
 Citation
 -------
-Ayse Keskus, Asher Bryant, Tanveer Ahmad, Byunggil Yoo, Sergey Aganezov, Anton Goretsky, Ataberk Donmez, Lisa A. Lansdon, Isabel Rodriguez, Jimin Park, Yuelin Liu, Xiwen Cui, Joshua Gardner, Brandy McNulty, Samuel Sacco, Jyoti Shetty, Yongmei Zhao, Bao Tran, Giuseppe Narzisi, Adrienne Helland, Daniel E. Cook, Andrew Carroll, Pi-Chuan Chang, Alexey Kolesnikov, Erin K. Molloy, Irina Pushel, Erin Guest, Tomi Pastinen, Kishwar Shafin, Karen H. Miga, Salem Malikic, Chi-Ping Day, Nicolas Robine, Cenk Sahinalp, Michael Dean, Midhat S. Farooqi, Benedict Paten, Mikhail Kolmogorov. "Severus: accurate detection and characterization of somatic structural variation in tumor genomes using long reads." medRxiv 2024, https://doi.org/10.1101/2024.03.22.24304756.
+Keskus, A.G., Bryant, A., Ahmad, T. et al. **Severus detects somatic structural variation and complex rearrangements in cancer genomes using long-read sequencing.** *Nature Biotechnology* (2025). https://doi.org/10.1038/s41587-025-02618-8
 
 Credits
 -------
