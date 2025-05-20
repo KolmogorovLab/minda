@@ -69,6 +69,7 @@ def get_df(vcf):
     else:
         df = pd.read_csv(vcf, comment='#', sep='\t', usecols=[0,1,2,4,6,7], header=None, compression='gzip', dtype={'#CHROM': 'str', 'POS':'Int64'})
     df.columns = ['#CHROM', 'POS', 'ID', 'ALT', 'FILTER', 'INFO']
+    df['ID'] = df['ID'].astype('str')
     
     return df
 
@@ -83,6 +84,7 @@ def get_intersected_df(vcf, bed):
     intersect_obj = vcf_to_bt.intersect(bed_to_bt, u=True)
     df = BedTool.to_dataframe(intersect_obj, header=None, usecols=[0,1,2,4,6,7], dtype={'#CHROM': 'str', 'POS':'int'})
     df.columns = ['#CHROM', 'POS', 'ID', 'ALT', 'FILTER', 'INFO']
+    df['ID'] = df['ID'].astype('str')
     return df
 
 
